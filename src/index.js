@@ -1,4 +1,4 @@
-// Import the HTML file as a raw string (enabled by wrangler.toml rules)
+import puppeteer from "@cloudflare/puppeteer";
 import htmlContent from './index.html';
 
 export default {
@@ -14,60 +14,68 @@ export default {
 
     // 2. Serve the API
     if (url.pathname === "/api") {
-      return handleApiRequest(request);
+      return handleScrape(request, env);
     }
 
-    // 404 for anything else
     return new Response("Not Found", { status: 404 });
   }
 };
 
-// --- API Logic ---
-async function handleApiRequest(request) {
+async function handleScrape(request, env) {
   const url = new URL(request.url);
   const targetUrl = url.searchParams.get('target');
 
   if (!targetUrl) {
     return new Response(JSON.stringify({ error: "Missing target parameter" }), {
-      status: 400,
-      headers: { "Content-Type": "application/json" }
+      status: 400, headers: { "Content-Type": "application/json" }
     });
   }
 
-  const scrapeRequest = new Request(targetUrl, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-    }
-  });
-
-  let extractedData = {
-    price: "Not found",
-    currency: "AUD",
-    dates: extractDatesFromUrl(targetUrl)
-  };
-
+  let browser;
   try {
-    const response = await fetch(scrapeRequest);
+    // Launch Cloudflare Browser
+    browser = await puppeteer.launch(env.MYBROWSER);
+    const page = await browser.newPage();
 
-    const rewriter = new HTMLRewriter()
-      .on('.search_history-wrapper-item-currency', {
-        text(text) {
-          const content = text.text.trim();
-          if (content.length > 0) extractedData.price = content;
-        }
-      });
+    // Set a realistic viewport
+    await page.setViewport({ width: 1280, height: 800 });
 
-    await rewriter.transform(response).text();
+    // Go to the URL
+    // waitUntil: 'networkidle0' waits until network traffic stops (page fully loaded)
+    await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 30000 });
 
-    return new Response(JSON.stringify(extractedData), {
+    // Wait specifically for the price element to appear in the DOM
+    const selector = '.search_history-wrapper-item-currency';
+    await page.waitForSelector(selector, { timeout: 10000 });
+
+    // Extract the text content
+    const price = await page.$eval(selector, el => el.textContent.trim());
+
+    // Extract dates using the previous logic
+    const dates = extractDatesFromUrl(targetUrl);
+
+    // Return Data
+    return new Response(JSON.stringify({ 
+      price: price, 
+      currency: "AUD", 
+      dates: dates 
+    }), {
       headers: { "Content-Type": "application/json" }
     });
 
   } catch (e) {
-    return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" }
+    return new Response(JSON.stringify({ 
+      error: "Scraping failed", 
+      details: e.message,
+      price: "N/A" 
+    }), {
+      status: 500, headers: { "Content-Type": "application/json" }
     });
+  } finally {
+    // ALWAYS close the browser to free up resources
+    if (browser) {
+      await browser.close();
+    }
   }
 }
 
