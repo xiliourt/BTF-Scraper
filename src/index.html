@@ -28,7 +28,7 @@
 </head>
 <body>
 <div class="container">
-    <h2>✈️ Flight Price Monitor</h2>
+    <h2>✈️ Flight Price Monitor (Browser Render)</h2>
     <div class="grid">
         <div><label>From</label><input type="text" id="origin" value="MEL" maxlength="3"></div>
         <div><label>To</label><input type="text" id="destination" value="MAN" maxlength="3"></div>
@@ -48,7 +48,7 @@
     <div id="results-area"></div>
 </div>
 <script>
-    const WORKER_ENDPOINT = "/api"; // Relative path hits the worker
+    const WORKER_ENDPOINT = "/api"; 
     document.getElementById('startDate').valueAsDate = new Date('2025-02-05');
     document.getElementById('endDate').valueAsDate = new Date('2025-03-06');
 
@@ -99,7 +99,7 @@
             const response = await fetch(`${WORKER_ENDPOINT}?target=${encodeURIComponent(targetUrl)}`);
             const data = await response.json();
             card.classList.remove('loading');
-            if (data.price && data.price !== "Not found") {
+            if (data.price && data.price !== "N/A" && data.price !== "Not found") {
                 card.classList.add('success');
                 priceDiv.innerHTML = `${data.price} <span>AUD</span>`;
             } else {
