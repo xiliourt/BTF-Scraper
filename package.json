@@ -1,0 +1,16 @@
+{
+  "name": "flight-scraper-browser",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker with Puppeteer for flight scraping",
+  "main": "src/index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@cloudflare/puppeteer": "^0.0.13"
+  },
+  "devDependencies": {
+    "wrangler": "^3.109.2"
+  }
+}
