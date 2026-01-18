@@ -27,47 +27,28 @@
     </style>
 </head>
 <body>
-
 <div class="container">
     <h2>✈️ Flight Price Monitor</h2>
-    
     <div class="grid">
-        <div>
-            <label>From</label>
-            <input type="text" id="origin" value="MEL" maxlength="3">
-        </div>
-        <div>
-            <label>To</label>
-            <input type="text" id="destination" value="MAN" maxlength="3">
-        </div>
-        <div>
-            <label>Depart Date</label>
-            <input type="date" id="startDate">
-        </div>
-        <div>
-            <label>Return Date</label>
-            <input type="date" id="endDate">
-        </div>
+        <div><label>From</label><input type="text" id="origin" value="MEL" maxlength="3"></div>
+        <div><label>To</label><input type="text" id="destination" value="MAN" maxlength="3"></div>
+        <div><label>Depart</label><input type="date" id="startDate"></div>
+        <div><label>Return</label><input type="date" id="endDate"></div>
         <div class="full-width">
-            <label>Date Flexibility</label>
+            <label>Flexibility</label>
             <select id="range">
-                <option value="0">Exact Dates Only</option>
+                <option value="0">Exact Dates</option>
                 <option value="1">+/- 1 Day</option>
                 <option value="2">+/- 2 Days</option>
                 <option value="3" selected>+/- 3 Days</option>
             </select>
         </div>
     </div>
-
     <button onclick="startScraping()">Search Prices</button>
-
     <div id="results-area"></div>
 </div>
-
 <script>
-    // Relative path automatically hits the Functions API
-    const WORKER_ENDPOINT = "/api";
-
+    const WORKER_ENDPOINT = "/api"; // Relative path hits the worker
     document.getElementById('startDate').valueAsDate = new Date('2025-02-05');
     document.getElementById('endDate').valueAsDate = new Date('2025-03-06');
 
@@ -80,7 +61,6 @@
     async function startScraping() {
         const resultsArea = document.getElementById('results-area');
         resultsArea.innerHTML = ''; 
-
         const origin = document.getElementById('origin').value.toUpperCase();
         const dest = document.getElementById('destination').value.toUpperCase();
         const startInput = new Date(document.getElementById('startDate').value);
@@ -93,5 +73,45 @@
             sDate.setDate(sDate.getDate() + i);
             eDate.setDate(eDate.getDate() + i);
 
-            // Construct URL: MEL0502MAN06031
             const urlCode = `${origin}${formatDateCode(sDate)}${dest}${formatDateCode(eDate)}1`;
+            const targetUrl = `https://bookings.beatthatflight.com.au/flights/${urlCode}`;
+            const cardId = `card-${i}`;
+            const displayDate = `${sDate.toLocaleDateString()} - ${eDate.toLocaleDateString()}`;
+            
+            const cardHTML = `
+                <div id="${cardId}" class="result-card loading">
+                    <div class="flight-info">
+                        <span class="flight-route">${origin} ↔ ${dest}</span>
+                        <span class="flight-dates">${displayDate}</span>
+                        <a href="${targetUrl}" target="_blank" style="font-size:0.8rem; margin-top:4px;">View Link</a>
+                    </div>
+                    <div class="price-tag">Loading...</div>
+                </div>`;
+            resultsArea.insertAdjacentHTML('beforeend', cardHTML);
+            fetchPrice(targetUrl, cardId);
+        }
+    }
+
+    async function fetchPrice(targetUrl, cardId) {
+        const card = document.getElementById(cardId);
+        const priceDiv = card.querySelector('.price-tag');
+        try {
+            const response = await fetch(`${WORKER_ENDPOINT}?target=${encodeURIComponent(targetUrl)}`);
+            const data = await response.json();
+            card.classList.remove('loading');
+            if (data.price && data.price !== "Not found") {
+                card.classList.add('success');
+                priceDiv.innerHTML = `${data.price} <span>AUD</span>`;
+            } else {
+                card.classList.add('error');
+                priceDiv.innerText = "N/A";
+            }
+        } catch (error) {
+            card.classList.remove('loading');
+            card.classList.add('error');
+            priceDiv.innerText = "Error";
+        }
+    }
+</script>
+</body>
+</html>
