@@ -8,27 +8,20 @@
         :root { --primary: #0070f3; --bg: #f7f9fc; }
         body { font-family: -apple-system, system-ui, sans-serif; max-width: 800px; margin: 2rem auto; padding: 0 1rem; background: var(--bg); }
         .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
         .full-width { grid-column: span 2; }
-        
         label { display: block; font-size: 0.85rem; font-weight: 600; color: #555; margin-bottom: 0.4rem; }
         input, select { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        
         button { background: var(--primary); color: white; border: none; padding: 1rem; width: 100%; font-weight: bold; border-radius: 6px; cursor: pointer; transition: 0.2s; }
         button:hover { background: #0051a8; }
-        
-        /* Results Table */
         #results-area { margin-top: 2rem; }
         .result-card { background: white; border: 1px solid #eee; padding: 1rem; margin-bottom: 0.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
         .result-card.loading { border-left: 4px solid #ffd700; opacity: 0.7; }
         .result-card.success { border-left: 4px solid #00c853; }
         .result-card.error { border-left: 4px solid #ff3d00; }
-        
         .flight-info { display: flex; flex-direction: column; }
         .flight-route { font-weight: bold; font-size: 1.1rem; }
         .flight-dates { color: #666; font-size: 0.9rem; }
-        
         .price-tag { font-size: 1.5rem; font-weight: bold; color: #333; }
         .price-tag span { font-size: 0.9rem; color: #666; font-weight: normal; }
     </style>
@@ -40,11 +33,11 @@
     
     <div class="grid">
         <div>
-            <label>From (e.g. MEL)</label>
+            <label>From</label>
             <input type="text" id="origin" value="MEL" maxlength="3">
         </div>
         <div>
-            <label>To (e.g. MAN)</label>
+            <label>To</label>
             <input type="text" id="destination" value="MAN" maxlength="3">
         </div>
         <div>
@@ -72,10 +65,9 @@
 </div>
 
 <script>
-    // ⚠️ REPLACE THIS WITH YOUR CLOUDFLARE WORKER URL FROM PART 2
+    // Relative path automatically hits the Functions API
     const WORKER_ENDPOINT = "/api";
 
-    // Initialize default dates
     document.getElementById('startDate').valueAsDate = new Date('2025-02-05');
     document.getElementById('endDate').valueAsDate = new Date('2025-03-06');
 
@@ -87,7 +79,7 @@
 
     async function startScraping() {
         const resultsArea = document.getElementById('results-area');
-        resultsArea.innerHTML = ''; // Clear previous
+        resultsArea.innerHTML = ''; 
 
         const origin = document.getElementById('origin').value.toUpperCase();
         const dest = document.getElementById('destination').value.toUpperCase();
@@ -95,63 +87,11 @@
         const endInput = new Date(document.getElementById('endDate').value);
         const range = parseInt(document.getElementById('range').value);
 
-        // Generate tasks
         for (let i = -range; i <= range; i++) {
             let sDate = new Date(startInput);
             let eDate = new Date(endInput);
             sDate.setDate(sDate.getDate() + i);
             eDate.setDate(eDate.getDate() + i);
 
-            // Construct Target URL
+            // Construct URL: MEL0502MAN06031
             const urlCode = `${origin}${formatDateCode(sDate)}${dest}${formatDateCode(eDate)}1`;
-            const targetUrl = `https://bookings.beatthatflight.com.au/flights/${urlCode}`;
-
-            // Create UI Card
-            const cardId = `card-${i}`;
-            const displayDate = `${sDate.toLocaleDateString()} - ${eDate.toLocaleDateString()}`;
-            
-            const cardHTML = `
-                <div id="${cardId}" class="result-card loading">
-                    <div class="flight-info">
-                        <span class="flight-route">${origin} ↔ ${dest}</span>
-                        <span class="flight-dates">${displayDate}</span>
-                        <a href="${targetUrl}" target="_blank" style="font-size:0.8rem; margin-top:4px;">View Link</a>
-                    </div>
-                    <div class="price-tag">Loading...</div>
-                </div>
-            `;
-            resultsArea.insertAdjacentHTML('beforeend', cardHTML);
-
-            // Fetch data from Worker
-            fetchPrice(targetUrl, cardId);
-        }
-    }
-
-    async function fetchPrice(targetUrl, cardId) {
-        const card = document.getElementById(cardId);
-        const priceDiv = card.querySelector('.price-tag');
-
-        try {
-            const response = await fetch(`${WORKER_ENDPOINT}?target=${encodeURIComponent(targetUrl)}`);
-            const data = await response.json();
-
-            card.classList.remove('loading');
-            
-            if (data.price && data.price !== "Not found") {
-                card.classList.add('success');
-                priceDiv.innerHTML = `${data.price} <span>AUD</span>`;
-            } else {
-                card.classList.add('error');
-                priceDiv.innerText = "N/A";
-            }
-        } catch (error) {
-            card.classList.remove('loading');
-            card.classList.add('error');
-            priceDiv.innerText = "Error";
-            console.error(error);
-        }
-    }
-</script>
-
-</body>
-</html>
