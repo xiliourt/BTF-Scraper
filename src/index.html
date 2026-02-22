@@ -74,7 +74,7 @@
             eDate.setDate(eDate.getDate() + i);
 
             const urlCode = `${origin}${formatDateCode(sDate)}${dest}${formatDateCode(eDate)}1`;
-            const targetUrl = `https://bookings.beatthatflight.com.au/flights/${urlCode}`;
+            const targetUrl = `https://book.beatthatflight.com.au/flights/${urlCode}`;
             const cardId = `card-${i}`;
             const displayDate = `${sDate.toLocaleDateString()} - ${eDate.toLocaleDateString()}`;
             
