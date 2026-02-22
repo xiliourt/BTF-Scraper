@@ -42,7 +42,7 @@ async function handleScrape(request, env) {
 
     // Go to the URL
     // waitUntil: 'networkidle0' waits until network traffic stops (page fully loaded)
-    await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 30000 });
+    await page.goto(targetUrl, { waitUntil: 'networkidle0', timeout: 45000 });
 
     // Wait specifically for the price element to appear in the DOM
     const selector = '.search_history-wrapper-item-currency';
